@@ -4,14 +4,12 @@ from time import sleep
 import selenium.webdriver.support.expected_conditions as EC
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
-
-
+from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-
-driver = webdriver.Firefox(service=Service("/snap/bin/geckodriver"))
+driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 
 url_foro = "https://fpadistancia.edu.xunta.gal/mod/forum/view.php?id=2338078"
 
@@ -31,7 +29,7 @@ login_button = driver.find_element(By.ID, "loginbtn")
 login_button.click()
 
 sleep(2)
-
+first_pass = True
 while True:
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located(
@@ -64,7 +62,6 @@ while True:
         )
 
         thread_id = discussion.get("data-discussionid")
-
         if thread_id not in threads:
             threads[thread_id] = {
                 "title": title,
@@ -72,14 +69,16 @@ while True:
                 "last_comment_author": last_comment_author,
                 "comment_count": comment_count,
             }
-            print(f"Nuevo hilo titulado {title} de {author}")
+            if not first_pass:
+                print(f"Nuevo hilo titulado {title} de {author}")
 
-        if threads[thread_id]["comment_count"] != comment_count:
-            print(
-                f"{last_comment_author} ha publicado una nueva respuesta (la {comment_count}) al hilo {title}"
-            )
-            threads[thread_id]["comment_count"] = comment_count
-            threads[thread_id]["last_comment_author"] = last_comment_author
+        elif threads[thread_id]["comment_count"] != comment_count:
+                print(
+                    f"{last_comment_author} ha publicado una nueva respuesta (la {comment_count}) al hilo {title}"
+                )
+                threads[thread_id]["comment_count"] = comment_count
+                threads[thread_id]["last_comment_author"] = last_comment_author
 
     sleep(5)
     driver.refresh()
+    first_pass = False
